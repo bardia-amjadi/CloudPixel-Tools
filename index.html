@@ -1,8 +1,614 @@
-<html>
-<head> 
-  <title>Cloud Pixel Tools Index</title>
-</head>
-<body>
-  <h5>This page created by<a href="https://cloudpix.ir">Cloud Pixel</a><h5>
-</body>
+<!doctype html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <title>CloudPixel</title>
+
+        <!-- Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+
+        <style>
+            /* =========================
+           Reset
+        ========================= */
+
+            * {
+                box-sizing: border-box;
+            }
+
+            html {
+                scroll-behavior: smooth;
+            }
+
+            body {
+                margin: 0;
+                min-height: 100vh;
+
+                background: radial-gradient(circle at 50% -20%, rgba(124, 58, 237, 0.14), transparent 42%), #0b0b0f;
+
+                color: #f4f4f5;
+
+                font-family:
+                    "Inter",
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    "Segoe UI",
+                    sans-serif;
+
+                -webkit-font-smoothing: antialiased;
+                text-rendering: optimizeLegibility;
+            }
+
+            /* =========================
+           Persian
+        ========================= */
+
+            html[lang="fa"] body {
+                font-family: "Vazirmatn", sans-serif;
+            }
+
+            html[lang="fa"] h1 {
+                letter-spacing: 0;
+                line-height: 1.55;
+            }
+
+            html[lang="fa"] .projects-title {
+                letter-spacing: 0;
+            }
+
+            /* =========================
+           Page
+        ========================= */
+
+            .page {
+                width: 100%;
+                max-width: 960px;
+
+                margin: 0 auto;
+
+                padding: 32px 28px 50px;
+            }
+
+            /* =========================
+           Header
+        ========================= */
+
+            header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+
+                margin-bottom: 115px;
+            }
+
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .logo {
+                width: 38px;
+                height: 38px;
+
+                flex-shrink: 0;
+            }
+
+            .brand-name {
+                font-size: 19px;
+                font-weight: 600;
+
+                letter-spacing: -0.4px;
+            }
+
+            /* =========================
+           Language Switcher
+        ========================= */
+
+            .language {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+
+                padding: 4px;
+
+                border: 1px solid #27272a;
+                border-radius: 9px;
+
+                background: rgba(17, 17, 22, 0.8);
+
+                backdrop-filter: blur(10px);
+            }
+
+            .language button {
+                border: 0;
+                outline: none;
+
+                background: transparent;
+
+                color: #71717a;
+
+                padding: 7px 11px;
+
+                border-radius: 6px;
+
+                cursor: pointer;
+
+                font-family: inherit;
+                font-size: 12px;
+                font-weight: 600;
+
+                transition:
+                    background 0.2s ease,
+                    color 0.2s ease;
+            }
+
+            .language button:hover {
+                color: #e4e4e7;
+            }
+
+            .language button.active {
+                color: #fff;
+
+                background: #7c3aed;
+
+                box-shadow: 0 0 18px rgba(124, 58, 237, 0.2);
+            }
+
+            /* =========================
+           Main
+        ========================= */
+
+            main {
+                max-width: 680px;
+            }
+
+            /* =========================
+           Eyebrow
+        ========================= */
+
+            .eyebrow {
+                display: inline-flex;
+                align-items: center;
+                gap: 9px;
+
+                margin-bottom: 20px;
+
+                color: #a78bfa;
+
+                font-size: 13px;
+                font-weight: 600;
+            }
+
+            .dot {
+                width: 7px;
+                height: 7px;
+
+                border-radius: 50%;
+
+                background: #8b5cf6;
+
+                box-shadow:
+                    0 0 8px rgba(139, 92, 246, 0.8),
+                    0 0 18px rgba(139, 92, 246, 0.45);
+            }
+
+            /* =========================
+           Hero
+        ========================= */
+
+            h1 {
+                margin: 0;
+
+                color: #fafafa;
+
+                font-size: clamp(38px, 6vw, 62px);
+
+                line-height: 1.08;
+
+                letter-spacing: -3px;
+
+                font-weight: 600;
+            }
+
+            .description {
+                max-width: 580px;
+
+                margin: 24px 0 0;
+
+                color: #a1a1aa;
+
+                font-size: 17px;
+                line-height: 1.8;
+
+                font-weight: 400;
+            }
+
+            /* =========================
+           Projects
+        ========================= */
+
+            .projects {
+                margin-top: 58px;
+            }
+
+            .projects-title {
+                margin-bottom: 14px;
+
+                color: #71717a;
+
+                font-size: 11px;
+                font-weight: 600;
+
+                letter-spacing: 1.6px;
+                text-transform: uppercase;
+            }
+
+            .project {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+
+                width: 100%;
+
+                padding: 18px 20px;
+
+                border: 1px solid #27272a;
+
+                border-radius: 12px;
+
+                background: rgba(17, 17, 22, 0.72);
+
+                color: #fff;
+
+                text-decoration: none;
+
+                backdrop-filter: blur(10px);
+
+                transition:
+                    transform 0.2s ease,
+                    border-color 0.2s ease,
+                    background 0.2s ease,
+                    box-shadow 0.2s ease;
+            }
+
+            .project:hover {
+                transform: translateY(-2px);
+
+                border-color: rgba(139, 92, 246, 0.65);
+
+                background: rgba(24, 18, 32, 0.9);
+
+                box-shadow:
+                    0 10px 35px rgba(0, 0, 0, 0.25),
+                    0 0 30px rgba(124, 58, 237, 0.06);
+            }
+
+            .project-left {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+
+                min-width: 0;
+            }
+
+            /* =========================
+           Project Icon
+        ========================= */
+
+            .project-icon {
+                width: 40px;
+                height: 40px;
+
+                display: grid;
+                place-items: center;
+
+                flex-shrink: 0;
+
+                border: 1px solid rgba(139, 92, 246, 0.12);
+
+                border-radius: 10px;
+
+                background: rgba(124, 58, 237, 0.09);
+            }
+
+            .project-name {
+                color: #f4f4f5;
+
+                font-size: 14px;
+                font-weight: 600;
+            }
+
+            .project-desc {
+                margin-top: 4px;
+
+                color: #71717a;
+
+                font-size: 12px;
+                font-weight: 400;
+            }
+
+            .arrow {
+                color: #71717a;
+
+                font-size: 20px;
+
+                transition:
+                    color 0.2s ease,
+                    transform 0.2s ease;
+            }
+
+            .project:hover .arrow {
+                color: #a78bfa;
+                transform: translateX(3px);
+            }
+
+            html[dir="rtl"] .project:hover .arrow {
+                transform: translateX(-3px);
+            }
+
+            /* =========================
+           Footer
+        ========================= */
+
+            footer {
+                margin-top: 110px;
+
+                color: #52525b;
+
+                font-size: 12px;
+            }
+
+            /* =========================
+           Mobile
+        ========================= */
+
+            @media (max-width: 600px) {
+                .page {
+                    padding: 24px 20px 40px;
+                }
+
+                header {
+                    margin-bottom: 78px;
+                }
+
+                .brand-name {
+                    font-size: 18px;
+                }
+
+                .logo {
+                    width: 34px;
+                    height: 34px;
+                }
+
+                h1 {
+                    font-size: 39px;
+                    letter-spacing: -1.8px;
+                }
+
+                html[lang="fa"] h1 {
+                    font-size: 38px;
+                    line-height: 1.6;
+                }
+
+                .description {
+                    font-size: 15px;
+                }
+
+                .projects {
+                    margin-top: 45px;
+                }
+
+                footer {
+                    margin-top: 80px;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="page">
+            <!-- =========================
+         Header
+    ========================== -->
+
+            <header>
+                <div class="brand">
+                    <!-- CloudPixel Logo -->
+                    <svg class="logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M14 30.5C9.9 30.5 7 27.6 7 23.9C7 20.2 9.9 17.3 13.6 17.3C15 12.5 19.4 9 24.6 9C30.4 9 35.2 13.4 35.8 19.1C39.1 19.3 41.5 21.8 41.5 25C41.5 28.4 38.8 30.5 35.5 30.5H14Z"
+                            fill="#8B5CF6"
+                        />
+
+                        <path d="M18 35L24 29L30 35L24 41L18 35Z" fill="#A78BFA" />
+                    </svg>
+
+                    <span class="brand-name"> CloudPixel </span>
+                </div>
+
+                <!-- Language -->
+                <div class="language">
+                    <button id="enButton" onclick="changeLanguage('en')">EN</button>
+
+                    <button id="faButton" onclick="changeLanguage('fa')">فا</button>
+                </div>
+            </header>
+
+            <!-- =========================
+         Main
+    ========================== -->
+
+            <main>
+                <div class="eyebrow">
+                    <span class="dot"></span>
+
+                    <span id="eyebrow"> CloudPixel </span>
+                </div>
+
+                <h1 id="title">
+                    This page was<br />
+                    created by CloudPixel.
+                </h1>
+
+                <p class="description" id="description">A simple space for CloudPixel projects and tools.</p>
+
+                <!-- Projects -->
+
+                <section class="projects">
+                    <div class="projects-title" id="projectsTitle">Projects you can use</div>
+
+                    <a class="project" href="https://tools.cloudpix.ir/Vaultix/">
+                        <div class="project-left">
+                            <div class="project-icon">
+                                <svg
+                                    width="23"
+                                    height="23"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <path
+                                        d="M6 5.5C6 4.67 6.67 4 7.5 4H16.5C17.33 4 18 4.67 18 5.5V18.5C18 19.33 17.33 20 16.5 20H7.5C6.67 20 6 19.33 6 18.5V5.5Z"
+                                        stroke="#A78BFA"
+                                        stroke-width="1.7"
+                                    />
+
+                                    <path
+                                        d="M9 8H15M9 12H15M9 16H13"
+                                        stroke="#8B5CF6"
+                                        stroke-width="1.7"
+                                        stroke-linecap="round"
+                                    />
+                                </svg>
+                            </div>
+
+                            <div>
+                                <div class="project-name">Vaultix</div>
+
+                                <div class="project-desc" id="vaultixDesc">Secure password manager</div>
+                            </div>
+                        </div>
+
+                        <span class="arrow">→</span>
+                    </a>
+                </section>
+            </main>
+
+            <footer>© CloudPixel</footer>
+        </div>
+
+        <script>
+            /* =========================
+       Translations
+    ========================== */
+
+            const translations = {
+                en: {
+                    title: "This page was<br>created by CloudPixel.",
+
+                    description: "A simple space for CloudPixel projects and tools.",
+
+                    projects: "Projects you can use",
+
+                    vaultix: "Secure password manager",
+                },
+
+                fa: {
+                    title: "این صفحه توسط<br>CloudPixel ساخته شده است.",
+
+                    description: "فضایی ساده برای پروژه‌ها و ابزارهای CloudPixel.",
+
+                    projects: "پروژه‌هایی که می‌توانید استفاده کنید",
+
+                    vaultix: "مدیریت امن رمزهای عبور",
+                },
+            };
+
+            /* =========================
+       Change Language
+    ========================== */
+
+            function changeLanguage(language) {
+                const text = translations[language];
+
+                document.documentElement.lang = language;
+
+                document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
+
+                document.getElementById("title").innerHTML = text.title;
+
+                document.getElementById("description").textContent = text.description;
+
+                document.getElementById("projectsTitle").textContent = text.projects;
+
+                document.getElementById("vaultixDesc").textContent = text.vaultix;
+
+                document.getElementById("enButton").classList.toggle("active", language === "en");
+
+                document.getElementById("faButton").classList.toggle("active", language === "fa");
+
+                /*
+                 * Remember user's choice.
+                 */
+
+                localStorage.setItem("cloudpixel-language", language);
+            }
+
+            /* =========================
+       Automatic Detection
+    ========================== */
+
+            async function detectLanguage() {
+                /*
+                 * User's manual choice
+                 * always has priority.
+                 */
+
+                const savedLanguage = localStorage.getItem("cloudpixel-language");
+
+                if (savedLanguage) {
+                    changeLanguage(savedLanguage);
+
+                    return;
+                }
+
+                /*
+                 * Detect country from IP.
+                 */
+
+                try {
+                    const response = await fetch("https://ipapi.co/json/");
+
+                    const data = await response.json();
+
+                    if (data.country_code === "IR") {
+                        changeLanguage("fa");
+                    } else {
+                        changeLanguage("en");
+                    }
+                } catch (error) {
+                    /*
+                     * English is the fallback.
+                     */
+
+                    changeLanguage("en");
+                }
+            }
+
+            /* =========================
+       Start
+    ========================== */
+
+            detectLanguage();
+        </script>
+    </body>
 </html>
