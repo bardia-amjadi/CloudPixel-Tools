@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Vault — Password Manager</title>
+<meta name="description" content="Vault: a local-first, client-side encrypted password manager.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%237C6AEF'/%3E%3Cpath d='M12 6a3.5 3.5 0 0 0-3.5 3.5V11H7v7h10v-7h-1.5V9.5A3.5 3.5 0 0 0 12 6zm0 1.5A2 2 0 0 1 14 9.5V11h-4V9.5A2 2 0 0 1 12 7.5z' fill='white'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+<!-- ===================== LOCK / SETUP SCREEN ===================== -->
+<main id="lock-screen" class="lock-screen">
+  <div class="lock-card">
+    <div class="lock-mark" aria-hidden="true">
+      <svg viewBox="0 0 48 48" width="40" height="40">
+        <rect width="48" height="48" rx="12" fill="var(--accent-purple)"/>
+        <path d="M24 12a7 7 0 0 0-7 7v3h-3v14h20V22h-3v-3a7 7 0 0 0-7-7zm0 3a4 4 0 0 1 4 4v3h-8v-3a4 4 0 0 1 4-4z" fill="white"/>
+      </svg>
+    </div>
+
+    <h1 class="lock-title">Vault</h1>
+
+    <!-- Unlock (returning user) -->
+    <form id="unlock-form" class="lock-form" novalidate>
+      <p class="lock-sub">Enter your master password to unlock.</p>
+      <div class="field">
+        <label for="unlock-password">Master password</label>
+        <div class="password-input">
+          <input type="password" id="unlock-password" name="unlock-password" autocomplete="current-password" required>
+          <button type="button" class="icon-btn toggle-visibility" data-target="unlock-password" aria-label="Show password">
+            <svg class="icon-eye" viewBox="0 0 24 24"><path d="M12 5c-5 0-9.27 3.11-11 7 1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+          </button>
+        </div>
+        <p class="field-error" id="unlock-error" role="alert"></p>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="unlock-submit">
+        <span class="btn-label">Unlock vault</span>
+      </button>
+      <button type="button" class="link-btn danger-link" id="show-reset-vault">Forgot your password?</button>
+    </form>
+
+    <!-- Setup (first run) -->
+    <form id="setup-form" class="lock-form hidden" novalidate>
+      <p class="lock-sub">Create a master password to protect your vault. This password never leaves your device — if you lose it, your data can't be recovered.</p>
+      <div class="field">
+        <label for="setup-password">Master password</label>
+        <div class="password-input">
+          <input type="password" id="setup-password" name="setup-password" autocomplete="new-password" minlength="8" required>
+          <button type="button" class="icon-btn toggle-visibility" data-target="setup-password" aria-label="Show password">
+            <svg class="icon-eye" viewBox="0 0 24 24"><path d="M12 5c-5 0-9.27 3.11-11 7 1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 0 0 0 6 3 3 0 0 0 0-6z"/></svg>
+          </button>
+        </div>
+        <div class="strength-meter" id="setup-strength" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <p class="field-hint" id="setup-strength-label">At least 8 characters</p>
+      </div>
+      <div class="field">
+        <label for="setup-password-confirm">Confirm master password</label>
+        <input type="password" id="setup-password-confirm" name="setup-password-confirm" autocomplete="new-password" required>
+        <p class="field-error" id="setup-error" role="alert"></p>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">
+        <span class="btn-label">Create vault</span>
+      </button>
+    </form>
+
+    <p class="lock-footnote">Everything is encrypted and stored only in this browser. Vault never sends your data anywhere.</p>
+  </div>
+</main>
+
+<!-- ===================== MAIN APP ===================== -->
+<div id="app" class="app hidden">
+
+  <!-- Sidebar (desktop) -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <svg viewBox="0 0 48 48" width="24" height="24" aria-hidden="true">
+        <rect width="48" height="48" rx="12" fill="var(--accent-purple)"/>
+        <path d="M24 12a7 7 0 0 0-7 7v3h-3v14h20V22h-3v-3a7 7 0 0 0-7-7zm0 3a4 4 0 0 1 4 4v3h-8v-3a4 4 0 0 1 4-4z" fill="white"/>
+      </svg>
+      <span>Vault</span>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Primary">
+      <button class="nav-item active" data-view="all">
+        <svg viewBox="0 0 24 24"><path d="M4 4h16v4H4zM4 10h16v10H4z"/></svg>
+        <span>All Passwords</span>
+        <span class="nav-count" id="count-all">0</span>
+      </button>
+      <button class="nav-item" data-view="favorites">
+        <svg viewBox="0 0 24 24"><path d="M12 17.3 6.2 21l1.6-6.6L2.5 9.9l6.8-.6L12 3l2.7 6.3 6.8.6-5.3 4.5 1.6 6.6z"/></svg>
+        <span>Favorites</span>
+        <span class="nav-count" id="count-favorites">0</span>
+      </button>
+      <button class="nav-item" data-view="categories">
+        <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>
+        <span>Categories</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-spacer"></div>
+
+    <nav class="sidebar-nav" aria-label="Secondary">
+      <button class="nav-item" data-view="settings">
+        <svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm7.4-3.5c0 .3 0 .6-.05.9l1.95 1.5-1.9 3.3-2.3-.9c-.5.4-1.05.7-1.65.9l-.35 2.4h-3.8l-.35-2.4a6 6 0 0 1-1.65-.9l-2.3.9-1.9-3.3 1.95-1.5A5.9 5.9 0 0 1 4.6 12c0-.3.02-.6.05-.9l-1.95-1.5 1.9-3.3 2.3.9c.5-.4 1.05-.7 1.65-.9l.35-2.4h3.8l.35 2.4c.6.2 1.15.5 1.65.9l2.3-.9 1.9 3.3-1.95 1.5c.03.3.05.6.05.9z"/></svg>
+        <span>Settings</span>
+      </button>
+      <button class="nav-item" id="lock-btn">
+        <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V7a3 3 0 0 1 3-3z"/></svg>
+        <span>Lock Vault</span>
+      </button>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="topbar">
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4a6 6 0 1 0 3.76 10.7l4.77 4.77 1.4-1.4-4.76-4.77A6 6 0 0 0 10 4zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/></svg>
+        <input type="search" id="search-input" placeholder="Search passwords…" aria-label="Search passwords">
+      </div>
+
+      <button class="btn btn-primary only-desktop" id="add-btn-top">
+        <svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+        <span>Add Password</span>
+      </button>
+    </header>
+
+    <div class="content" id="content">
+
+      <!-- All / Favorites view -->
+      <section id="view-list" class="view">
+        <div class="view-header">
+          <h1 id="view-title">All Passwords</h1>
+          <div class="view-controls">
+            <select id="category-filter" aria-label="Filter by category">
+              <option value="">All categories</option>
+            </select>
+            <select id="sort-select" aria-label="Sort entries">
+              <option value="updated-desc">Recently updated</option>
+              <option value="name-asc">Name A–Z</option>
+              <option value="name-desc">Name Z–A</option>
+              <option value="created-desc">Newest</option>
+              <option value="created-asc">Oldest</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="entry-list" class="entry-list" role="list"></div>
+
+        <div id="empty-state" class="empty-state hidden">
+          <svg viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V7a3 3 0 0 1 3-3z"/></svg>
+          <h2 id="empty-title">Your vault is empty</h2>
+          <p id="empty-body">Add your first password to get started.</p>
+          <button class="btn btn-primary" id="empty-add-btn">Add Password</button>
+        </div>
+
+        <div id="no-results-state" class="empty-state hidden">
+          <svg viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path d="M10 4a6 6 0 1 0 3.76 10.7l4.77 4.77 1.4-1.4-4.76-4.77A6 6 0 0 0 10 4zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/></svg>
+          <h2>No passwords found</h2>
+          <p>Try a different search term.</p>
+        </div>
+      </section>
+
+      <!-- Categories view -->
+      <section id="view-categories" class="view hidden">
+        <div class="view-header"><h1>Categories</h1></div>
+        <div id="category-grid" class="category-grid"></div>
+      </section>
+
+      <!-- Settings view -->
+      <section id="view-settings" class="view hidden">
+        <div class="view-header"><h1>Settings</h1></div>
+
+        <div class="settings-list">
+          <div class="settings-group">
+            <h2>Appearance</h2>
+            <div class="settings-row">
+              <div>
+                <p class="settings-row-title">Theme</p>
+                <p class="settings-row-sub">Choose how Vault looks on this device.</p>
+              </div>
+              <select id="theme-select">
+                <option value="dark">Dark</option>
+                <option value="dim">Dim</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h2>Security</h2>
+            <div class="settings-row">
+              <div>
+                <p class="settings-row-title">Auto-lock</p>
+                <p class="settings-row-sub">Lock the vault after a period of inactivity.</p>
+              </div>
+              <select id="autolock-select">
+                <option value="5">5 minutes</option>
+                <option value="15">15 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="0">Never</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <div>
+                <p class="settings-row-title">Master password</p>
+                <p class="settings-row-sub">Change the password used to unlock your vault.</p>
+              </div>
+              <button class="btn btn-secondary" id="change-password-btn">Change</button>
+            </div>
+            <div class="settings-row">
+              <div>
+                <p class="settings-row-title">Lock now</p>
+                <p class="settings-row-sub">Immediately lock the vault and clear it from view.</p>
+              </div>
+              <button class="btn btn-secondary" id="lock-now-btn">Lock Vault</button>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h2>Data</h2>
+            <div class="settings-row">
+              <div>
+                <p class="settings-row-title">Export vault</p>
+                <p class="settings-row-sub">Download your encrypted vault as a JSON file.</p>
+              </div>
+              <button class="btn btn-secondary" id="export-btn">Export</button>
+            </div>
+            <div class="settings-row">
+              <div>
+                <p class="settings-row-title">Import vault</p>
+                <p class="settings-row-sub">Replace your current vault with a previously exported file.</p>
+              </div>
+              <button class="btn btn-secondary" id="import-btn">Import</button>
+              <input type="file" id="import-file-input" accept="application/json" class="visually-hidden">
+            </div>
+            <div class="settings-row">
+              <div>
+                <p class="settings-row-title">Clear local vault</p>
+                <p class="settings-row-sub">Permanently delete all data stored in this browser.</p>
+              </div>
+              <button class="btn btn-danger" id="clear-vault-btn">Clear Vault</button>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h2>About</h2>
+            <p class="about-text">
+              Vault is a static, client-side password manager. Entries are encrypted with
+              AES-GCM using a key derived from your master password via PBKDF2, and the
+              encrypted data never leaves this browser. Vault is a portfolio/demo project
+              and has not undergone professional security auditing — it should not be
+              treated as equivalent to an audited, production password manager.
+            </p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- Mobile bottom navigation -->
+  <nav class="bottom-nav only-mobile" aria-label="Primary">
+    <button class="bottom-nav-item active" data-view="all" aria-label="Home">
+      <svg viewBox="0 0 24 24"><path d="M4 4h16v4H4zM4 10h16v10H4z"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="bottom-nav-item" data-view="favorites" aria-label="Favorites">
+      <svg viewBox="0 0 24 24"><path d="M12 17.3 6.2 21l1.6-6.6L2.5 9.9l6.8-.6L12 3l2.7 6.3 6.8.6-5.3 4.5 1.6 6.6z"/></svg>
+      <span>Favorites</span>
+    </button>
+    <button class="bottom-nav-fab" id="fab-add" aria-label="Add password">
+      <svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+    </button>
+    <button class="bottom-nav-item" id="bottom-search-btn" aria-label="Search">
+      <svg viewBox="0 0 24 24"><path d="M10 4a6 6 0 1 0 3.76 10.7l4.77 4.77 1.4-1.4-4.76-4.77A6 6 0 0 0 10 4zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/></svg>
+      <span>Search</span>
+    </button>
+    <button class="bottom-nav-item" data-view="settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm7.4-3.5c0 .3 0 .6-.05.9l1.95 1.5-1.9 3.3-2.3-.9c-.5.4-1.05.7-1.65.9l-.35 2.4h-3.8l-.35-2.4a6 6 0 0 1-1.65-.9l-2.3.9-1.9-3.3 1.95-1.5A5.9 5.9 0 0 1 4.6 12c0-.3.02-.6.05-.9l-1.95-1.5 1.9-3.3 2.3.9c.5-.4 1.05-.7 1.65-.9l.35-2.4h3.8l.35 2.4c.6.2 1.15.5 1.65.9l2.3-.9 1.9 3.3-1.95 1.5c.03.3.05.6.05.9z"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- Entry form modal -->
+<div class="modal-backdrop hidden" id="entry-modal-backdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="entry-modal-title">
+    <div class="modal-header">
+      <h2 id="entry-modal-title">Add Password</h2>
+      <button class="icon-btn" id="entry-modal-close" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <form id="entry-form" class="modal-body" novalidate>
+      <input type="hidden" id="entry-id">
+      <div class="field">
+        <label for="entry-name">Service name</label>
+        <input type="text" id="entry-name" required placeholder="e.g. GitHub">
+      </div>
+      <div class="field">
+        <label for="entry-url">Website URL</label>
+        <input type="url" id="entry-url" placeholder="https://example.com">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="entry-username">Username / email</label>
+          <input type="text" id="entry-username" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="entry-category">Category</label>
+          <select id="entry-category">
+            <option>Websites</option>
+            <option>Email</option>
+            <option>Social</option>
+            <option>Gaming</option>
+            <option>Work</option>
+            <option>Finance</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="entry-password">Password</label>
+        <div class="password-input">
+          <input type="password" id="entry-password" autocomplete="new-password">
+          <button type="button" class="icon-btn toggle-visibility" data-target="entry-password" aria-label="Show password">
+            <svg class="icon-eye" viewBox="0 0 24 24"><path d="M12 5c-5 0-9.27 3.11-11 7 1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 0 0 0 6 3 3 0 0 0 0-6z"/></svg>
+          </button>
+          <button type="button" class="icon-btn" id="open-generator-btn" aria-label="Generate password">
+            <svg viewBox="0 0 24 24"><path d="M12 4V2M12 22v-2M4 12H2m20 0h-2M5.6 5.6 4.2 4.2m15.6 15.6-1.4-1.4M18.4 5.6l1.4-1.4M5.6 18.4l-1.4 1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>
+          </button>
+        </div>
+        <div class="strength-meter" id="entry-strength" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <p class="field-hint" id="entry-strength-label"></p>
+      </div>
+      <div class="field">
+        <label for="entry-notes">Notes</label>
+        <textarea id="entry-notes" rows="3"></textarea>
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="entry-favorite">
+        <span>Mark as favorite</span>
+      </label>
+    </form>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="entry-cancel-btn" type="button">Cancel</button>
+      <button class="btn btn-primary" id="entry-save-btn" type="submit" form="entry-form">Save Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password generator modal -->
+<div class="modal-backdrop hidden" id="generator-modal-backdrop">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="generator-modal-title">
+    <div class="modal-header">
+      <h2 id="generator-modal-title">Password Generator</h2>
+      <button class="icon-btn" id="generator-modal-close" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="generated-output">
+        <code id="generated-password" class="generated-password"></code>
+        <button class="icon-btn" id="regenerate-btn" aria-label="Generate new password">
+          <svg viewBox="0 0 24 24"><path d="M12 4a8 8 0 0 1 7.75 6h-2.1A6 6 0 1 0 12 18a6 6 0 0 0 5.6-3.9h2.1A8 8 0 1 1 12 4z"/></svg>
+        </button>
+        <button class="icon-btn" id="copy-generated-btn" aria-label="Copy generated password">
+          <svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11z"/></svg>
+        </button>
+      </div>
+      <div class="strength-meter" id="generator-strength" aria-hidden="true">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <p class="field-hint" id="generator-strength-label"></p>
+
+      <div class="field">
+        <label for="gen-length">Length: <span id="gen-length-value">16</span></label>
+        <input type="range" id="gen-length" min="8" max="48" value="16">
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="gen-uppercase" checked>
+        <span>Uppercase letters (A–Z)</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="gen-lowercase" checked>
+        <span>Lowercase letters (a–z)</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="gen-numbers" checked>
+        <span>Numbers (0–9)</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="gen-symbols" checked>
+        <span>Symbols (!@#$…)</span>
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="generator-cancel-btn" type="button">Close</button>
+      <button class="btn btn-primary" id="use-generated-btn" type="button">Use This Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change master password modal -->
+<div class="modal-backdrop hidden" id="change-password-modal-backdrop">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="change-password-title">
+    <div class="modal-header">
+      <h2 id="change-password-title">Change Master Password</h2>
+      <button class="icon-btn" id="change-password-modal-close" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <form id="change-password-form" class="modal-body" novalidate>
+      <div class="field">
+        <label for="current-password">Current master password</label>
+        <input type="password" id="current-password" autocomplete="current-password" required>
+      </div>
+      <div class="field">
+        <label for="new-password">New master password</label>
+        <input type="password" id="new-password" autocomplete="new-password" minlength="8" required>
+      </div>
+      <div class="field">
+        <label for="new-password-confirm">Confirm new password</label>
+        <input type="password" id="new-password-confirm" autocomplete="new-password" required>
+      </div>
+      <p class="field-error" id="change-password-error" role="alert"></p>
+    </form>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="change-password-cancel-btn" type="button">Cancel</button>
+      <button class="btn btn-primary" type="submit" form="change-password-form">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- Generic confirm modal -->
+<div class="modal-backdrop hidden" id="confirm-modal-backdrop">
+  <div class="modal modal-sm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+    <div class="modal-header">
+      <h2 id="confirm-modal-title">Are you sure?</h2>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-modal-body"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="confirm-modal-cancel">Cancel</button>
+      <button class="btn btn-danger" id="confirm-modal-confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/crypto.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/password-generator.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
