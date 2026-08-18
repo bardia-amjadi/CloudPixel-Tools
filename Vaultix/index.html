@@ -6,6 +6,16 @@
 <title>Vault — Password Manager</title>
 <meta name="description" content="Vault: a local-first, client-side encrypted password manager.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%237C6AEF'/%3E%3Cpath d='M12 6a3.5 3.5 0 0 0-3.5 3.5V11H7v7h10v-7h-1.5V9.5A3.5 3.5 0 0 0 12 6zm0 1.5A2 2 0 0 1 14 9.5V11h-4V9.5A2 2 0 0 1 12 7.5z' fill='white'/%3E%3C/svg%3E">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0d13">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vault">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -30,6 +40,14 @@
     <!-- Unlock (returning user) -->
     <form id="unlock-form" class="lock-form" novalidate>
       <p class="lock-sub">Enter your master password to unlock.</p>
+
+      <button type="button" class="btn btn-passkey btn-block hidden" id="passkey-unlock-btn">
+        <svg viewBox="0 0 24 24"><path d="M9 2a5 5 0 0 0-1 9.9V13l-1 1 1.5 1.5L7 17l1.5 1.5L7 20l2 2h1v-2.59l1-1V13l-.06-.1A5 5 0 0 0 9 2zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm7 3a3 3 0 0 0-3 3c0 1 .4 1.9 1.06 2.56L13 14v6l2 2 1.5-1.5-1-1V14.5l1.4-1.4A3 3 0 1 0 16 7z"/></svg>
+        <span>Unlock with Passkey</span>
+      </button>
+      <p class="lock-divider hidden" id="passkey-unlock-divider"><span>or</span></p>
+      <p class="field-hint passkey-context-note hidden" id="passkey-context-note"></p>
+
       <div class="field">
         <label for="unlock-password">Master password</label>
         <div class="password-input">
@@ -226,6 +244,28 @@
           </div>
 
           <div class="settings-group">
+            <h2>Passkey</h2>
+            <div class="settings-row">
+              <div>
+                <p class="settings-row-title" id="passkey-status-title">Unlock with Passkey</p>
+                <p class="settings-row-sub" id="passkey-status-sub">Use your fingerprint, face, or device PIN to unlock Vault instead of typing your master password.</p>
+              </div>
+              <button class="btn btn-secondary" id="passkey-toggle-btn">Enable</button>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h2>App</h2>
+            <div class="settings-row">
+              <div>
+                <p class="settings-row-title" id="install-row-title">Install Vault</p>
+                <p class="settings-row-sub" id="install-row-sub">Add Vault to your home screen or app list for offline, native-feeling access.</p>
+              </div>
+              <button class="btn btn-secondary hidden" id="install-app-btn">Install</button>
+            </div>
+          </div>
+
+          <div class="settings-group">
             <h2>Data</h2>
             <div class="settings-row">
               <div>
@@ -256,9 +296,12 @@
             <p class="about-text">
               Vault is a static, client-side password manager. Entries are encrypted with
               AES-GCM using a key derived from your master password via PBKDF2, and the
-              encrypted data never leaves this browser. Vault is a portfolio/demo project
-              and has not undergone professional security auditing — it should not be
-              treated as equivalent to an audited, production password manager.
+              encrypted data never leaves this browser. Optional passkey unlock uses your
+              device's fingerprint, face, or PIN via WebAuthn — Vault never sees or stores
+              biometric data, your master password, or a private key. Vault is a
+              portfolio/demo project and has not undergone professional security auditing —
+              it should not be treated as equivalent to an audited, production password
+              manager.
             </p>
           </div>
         </div>
@@ -446,6 +489,30 @@
   </div>
 </div>
 
+<!-- Verify master password modal (used before enabling a passkey) -->
+<div class="modal-backdrop hidden" id="verify-password-modal-backdrop">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="verify-password-title">
+    <div class="modal-header">
+      <h2 id="verify-password-title">Confirm your password</h2>
+      <button class="icon-btn" id="verify-password-modal-close" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <form id="verify-password-form" class="modal-body" novalidate>
+      <p class="lock-sub" id="verify-password-body"></p>
+      <div class="field">
+        <label for="verify-password-input">Master password</label>
+        <input type="password" id="verify-password-input" autocomplete="current-password" required>
+      </div>
+      <p class="field-error" id="verify-password-error" role="alert"></p>
+    </form>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="verify-password-cancel-btn" type="button">Cancel</button>
+      <button class="btn btn-primary" type="submit" form="verify-password-form">Continue</button>
+    </div>
+  </div>
+</div>
+
 <!-- Generic confirm modal -->
 <div class="modal-backdrop hidden" id="confirm-modal-backdrop">
   <div class="modal modal-sm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title">
@@ -465,6 +532,8 @@
 <script src="js/crypto.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/password-generator.js"></script>
+<script src="js/passkey.js"></script>
+<script src="js/pwa.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/app.js"></script>
 </body>

@@ -10,6 +10,7 @@
   const KEYS = {
     VAULT: 'vault.blob',
     SETTINGS: 'vault.settings',
+    PASSKEY: 'vault.passkey',
   };
 
   const SCHEMA_VERSION = 1;
@@ -81,6 +82,36 @@
     );
   }
 
+  // ---- Passkey metadata ----------------------------------------------------
+  // Only non-sensitive data lives here: a WebAuthn credential ID (not a
+  // secret — see passkey.js), the wrapping mode, and the vault key
+  // wrapped (encrypted) under key material that only the physical
+  // passkey can reproduce. The master password and the unwrapped vault
+  // key never appear in this file or in localStorage at all.
+
+  function hasPasskey() {
+    return localStorage.getItem(KEYS.PASSKEY) !== null;
+  }
+
+  function savePasskeyMeta(meta) {
+    localStorage.setItem(KEYS.PASSKEY, JSON.stringify(meta));
+    return meta;
+  }
+
+  function loadPasskeyMeta() {
+    const raw = localStorage.getItem(KEYS.PASSKEY);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function clearPasskeyMeta() {
+    localStorage.removeItem(KEYS.PASSKEY);
+  }
+
   global.VaultStorage = {
     hasVault: hasVault,
     saveVaultBlob: saveVaultBlob,
@@ -89,6 +120,10 @@
     loadSettings: loadSettings,
     saveSettings: saveSettings,
     isValidVaultBlob: isValidVaultBlob,
+    hasPasskey: hasPasskey,
+    savePasskeyMeta: savePasskeyMeta,
+    loadPasskeyMeta: loadPasskeyMeta,
+    clearPasskeyMeta: clearPasskeyMeta,
     SCHEMA_VERSION: SCHEMA_VERSION,
   };
 })(window);

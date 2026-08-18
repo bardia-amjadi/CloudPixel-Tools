@@ -48,6 +48,13 @@
 
   /**
    * Derives an AES-GCM CryptoKey from a master password and salt using PBKDF2.
+   *
+   * The key is marked extractable so it can optionally be wrapped
+   * (encrypted) under a separate key derived from a WebAuthn passkey —
+   * see passkey.js. The key itself is still never exported anywhere
+   * except into that wrapped, encrypted form; nothing here changes how
+   * password-based unlock works.
+   *
    * @param {string} password
    * @param {string} saltBase64
    * @param {number} [iterations]
@@ -74,7 +81,7 @@
       },
       passKey,
       { name: 'AES-GCM', length: KEY_LENGTH_BITS },
-      false,
+      true,
       ['encrypt', 'decrypt']
     );
   }

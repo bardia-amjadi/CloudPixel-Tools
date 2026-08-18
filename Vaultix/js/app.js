@@ -24,6 +24,7 @@
 
   let editingEntryId = null;
   let confirmCallback = null;
+  let verifyPasswordCallback = null;
   let settings = window.VaultStorage.loadSettings();
 
   let autoLockHandle = null;
@@ -50,11 +51,17 @@
     if (window.VaultStorage.hasVault()) {
       unlockForm.classList.remove('hidden');
       setupForm.classList.add('hidden');
+      updateLockScreenPasskeyUI();
       $('unlock-password').focus();
     } else {
       unlockForm.classList.add('hidden');
       setupForm.classList.remove('hidden');
       $('setup-password').focus();
+    }
+
+    if (window.VaultPWA) {
+      window.VaultPWA.onInstallStateChange(renderInstallRow);
+      renderInstallRow(window.VaultPWA.getInstallState());
     }
   }
 
@@ -156,6 +163,7 @@
     appRoot.classList.remove('hidden');
     switchView('all');
     renderAll();
+    renderPasskeySettingsRow();
     resetAutoLockTimer();
     attachActivityListeners();
   }
@@ -184,6 +192,7 @@
     if (window.VaultStorage.hasVault()) {
       unlockForm.classList.remove('hidden');
       setupForm.classList.add('hidden');
+      updateLockScreenPasskeyUI();
       setTimeout(function () { $('unlock-password').focus(); }, 50);
     } else {
       unlockForm.classList.add('hidden');
@@ -191,6 +200,228 @@
     }
 
     if (!silent) window.VaultUI.toast('Vault locked.');
+  }
+
+  // =========================================================================
+  // Passkey authentication
+  // =========================================================================
+  function updateLockScreenPasskeyUI() {
+    const btn = $('passkey-unlock-btn');
+    const divider = $('passkey-unlock-divider');
+    const note = $('passkey-context-note');
+
+    if (!window.VaultStorage.hasPasskey()) {
+      btn.classList.add('hidden');
+      divider.classList.add('hidden');
+      note.classList.add('hidden');
+      return;
+    }
+
+    if (!window.VaultPasskey.isSupported() || !window.VaultPasskey.isSecureContext()) {
+      btn.classList.add('hidden');
+      divider.classList.add('hidden');
+      note.textContent = window.location.protocol === 'file:'
+        ? 'Passkey unlock isn\'t available when opening this file directly. Use your master password, or serve Vault over HTTPS/localhost to enable it.'
+        : 'Passkey unlock isn\'t available in this browser. Use your master password.';
+      note.classList.remove('hidden');
+      return;
+    }
+
+    btn.classList.remove('hidden');
+    divider.classList.remove('hidden');
+    note.classList.add('hidden');
+  }
+
+  async function handlePasskeyUnlockClick() {
+    const meta = window.VaultStorage.loadPasskeyMeta();
+    if (!meta) return;
+
+    const btn = $('passkey-unlock-btn');
+    const label = btn.querySelector('span');
+    const originalLabel = label.textContent;
+    btn.disabled = true;
+    label.textContent = 'Waiting for passkey…';
+
+    try {
+      const key = await window.VaultPasskey.unlockWithPasskey(meta);
+      const blob = window.VaultStorage.loadVaultBlob();
+      if (!blob) throw new Error('No vault found on this device.');
+
+      const decrypted = await window.VaultCrypto.decryptData(key, { iv: blob.iv, ciphertext: blob.ciphertext });
+
+      vaultKey = key;
+      vaultSalt = blob.salt;
+      vaultIterations = blob.iterations;
+      entries = Array.isArray(decrypted) ? decrypted : [];
+
+      enterApp();
+      window.VaultUI.toast('Unlocked with passkey.', 'success');
+    } catch (err) {
+      const message = (err && err.message) ? err.message : 'Passkey unlock failed. Please use your master password.';
+      window.VaultUI.toast(message, 'error');
+    } finally {
+      btn.disabled = false;
+      label.textContent = originalLabel;
+    }
+  }
+
+  function renderPasskeySettingsRow() {
+    const titleEl = $('passkey-status-title');
+    const subEl = $('passkey-status-sub');
+    const btn = $('passkey-toggle-btn');
+
+    if (!window.VaultPasskey.isSupported() || !window.VaultPasskey.isSecureContext()) {
+      titleEl.textContent = 'Unlock with Passkey';
+      subEl.textContent = window.location.protocol === 'file:'
+        ? 'Requires HTTPS — not available when opening this file directly.'
+        : 'Not available in this browser.';
+      btn.textContent = 'Unavailable';
+      btn.disabled = true;
+      btn.setAttribute('data-action', 'none');
+      return;
+    }
+
+    btn.disabled = false;
+
+    if (window.VaultStorage.hasPasskey()) {
+      titleEl.textContent = 'Passkey enabled';
+      subEl.textContent = 'Your device passkey can unlock this vault. Your master password still works too.';
+      btn.textContent = 'Remove';
+      btn.className = 'btn btn-secondary';
+      btn.setAttribute('data-action', 'remove');
+    } else {
+      titleEl.textContent = 'Unlock with Passkey';
+      subEl.textContent = 'Use your fingerprint, face, or device PIN to unlock Vault instead of typing your master password.';
+      btn.textContent = 'Enable';
+      btn.className = 'btn btn-secondary';
+      btn.setAttribute('data-action', 'enable');
+    }
+  }
+
+  function handlePasskeyToggleClick() {
+    const action = $('passkey-toggle-btn').getAttribute('data-action');
+    if (action === 'enable') {
+      openVerifyPasswordModal(
+        'Confirm your master password',
+        'For your security, confirm your master password before enabling passkey unlock.',
+        handleEnablePasskey
+      );
+    } else if (action === 'remove') {
+      openConfirmModal(
+        'Remove passkey?',
+        'This removes passkey unlock from this device. Your vault stays protected by your master password. You may also want to remove the passkey from your device or browser\'s passkey settings.',
+        function () {
+          window.VaultStorage.clearPasskeyMeta();
+          renderPasskeySettingsRow();
+          window.VaultUI.toast('Passkey removed.');
+        }
+      );
+    }
+  }
+
+  async function handleEnablePasskey() {
+    const btn = $('passkey-toggle-btn');
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Setting up…';
+
+    try {
+      const meta = await window.VaultPasskey.registerPasskey(vaultKey);
+      window.VaultStorage.savePasskeyMeta(meta);
+      window.VaultUI.toast('Passkey enabled.', 'success');
+    } catch (err) {
+      const message = (err && err.message) ? err.message : 'Could not set up a passkey on this device.';
+      window.VaultUI.toast(message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+      renderPasskeySettingsRow();
+    }
+  }
+
+  /**
+   * Attempts to re-wrap the vault's (possibly just-rotated) key under an
+   * already-configured passkey. Called after a master password change.
+   * Never blocks the password change itself — if this fails, the
+   * passkey is simply disabled with a clear notice.
+   */
+  async function reconcilePasskeyAfterPasswordChange() {
+    if (!window.VaultStorage.hasPasskey()) return;
+    const meta = window.VaultStorage.loadPasskeyMeta();
+    try {
+      const updatedMeta = await window.VaultPasskey.rewrapForPasskey(meta, vaultKey);
+      window.VaultStorage.savePasskeyMeta(updatedMeta);
+    } catch (err) {
+      window.VaultStorage.clearPasskeyMeta();
+      window.VaultUI.toast('Your master password changed, so passkey unlock was turned off. You can re-enable it in Settings.', 'error');
+    } finally {
+      renderPasskeySettingsRow();
+    }
+  }
+
+  // ---- Verify-password modal (generic re-auth gate) -------------------------
+  function openVerifyPasswordModal(title, body, onVerified) {
+    $('verify-password-title').textContent = title;
+    $('verify-password-body').textContent = body;
+    $('verify-password-error').textContent = '';
+    $('verify-password-input').value = '';
+    verifyPasswordCallback = onVerified;
+    window.VaultUI.openModal($('verify-password-modal-backdrop'));
+  }
+
+  async function handleVerifyPasswordSubmit(e) {
+    e.preventDefault();
+    const errorEl = $('verify-password-error');
+    errorEl.textContent = '';
+    const password = $('verify-password-input').value;
+
+    try {
+      const blob = window.VaultStorage.loadVaultBlob();
+      const checkKey = await window.VaultCrypto.deriveKey(password, blob.salt, blob.iterations);
+      await window.VaultCrypto.decryptData(checkKey, { iv: blob.iv, ciphertext: blob.ciphertext });
+
+      const callback = verifyPasswordCallback;
+      verifyPasswordCallback = null;
+      window.VaultUI.closeModal($('verify-password-modal-backdrop'));
+      if (callback) callback();
+    } catch (err) {
+      errorEl.textContent = 'Incorrect master password.';
+    }
+  }
+
+  // ---- Install (PWA) --------------------------------------------------------
+  function renderInstallRow(installState) {
+    const titleEl = $('install-row-title');
+    const subEl = $('install-row-sub');
+    const btn = $('install-app-btn');
+    const state = installState ? installState.state : 'unavailable';
+
+    if (state === 'installed') {
+      titleEl.textContent = 'Vault is installed';
+      subEl.textContent = 'You\'re using the installed app.';
+      btn.classList.add('hidden');
+    } else if (state === 'promptable') {
+      titleEl.textContent = 'Install Vault';
+      subEl.textContent = 'Add Vault to your home screen or app list for offline, native-feeling access.';
+      btn.classList.remove('hidden');
+      btn.textContent = 'Install';
+    } else if (state === 'ios-manual') {
+      titleEl.textContent = 'Install Vault';
+      subEl.textContent = 'On iOS/iPadOS: tap the Share icon in Safari, then "Add to Home Screen."';
+      btn.classList.add('hidden');
+    } else {
+      titleEl.textContent = 'Install Vault';
+      subEl.textContent = 'Installing isn\'t available in this browser.';
+      btn.classList.add('hidden');
+    }
+  }
+
+  async function handleInstallClick() {
+    if (!window.VaultPWA) return;
+    const result = await window.VaultPWA.promptInstall();
+    if (result && result.outcome === 'accepted') {
+      window.VaultUI.toast('Installing Vault…', 'success');
+    }
   }
 
   // ---- Auto-lock ------------------------------------------------------------
@@ -254,6 +485,10 @@
 
     if (view === 'categories') renderCategoryGrid();
     if (view === 'all' || view === 'favorites') renderEntryList();
+    if (view === 'settings') {
+      renderPasskeySettingsRow();
+      if (window.VaultPWA) renderInstallRow(window.VaultPWA.getInstallState());
+    }
   }
 
   function renderAll() {
@@ -602,6 +837,8 @@
       $('change-password-form').reset();
       window.VaultUI.closeModal($('change-password-modal-backdrop'));
       window.VaultUI.toast('Master password updated.', 'success');
+
+      await reconcilePasskeyAfterPasswordChange();
     } catch (err) {
       errorEl.textContent = 'Current password is incorrect.';
     }
@@ -664,6 +901,7 @@
         'Importing will overwrite the vault currently stored in this browser. This can\'t be undone.',
         function () {
           window.VaultStorage.saveVaultBlob(parsed);
+          window.VaultStorage.clearPasskeyMeta();
           window.VaultUI.toast('Vault imported. Unlock it with its master password.', 'success');
           lockVault({ silent: true });
         }
@@ -681,6 +919,7 @@
       'This permanently deletes all data stored in this browser. This can\'t be undone.',
       function () {
         window.VaultStorage.clearVault();
+        window.VaultStorage.clearPasskeyMeta();
         lockVault({ silent: true });
         window.VaultUI.toast('Vault cleared from this device.');
       }
@@ -816,6 +1055,22 @@
     $('change-password-form').addEventListener('submit', handleChangePasswordSubmit);
     $('change-password-cancel-btn').addEventListener('click', function () { window.VaultUI.closeModal($('change-password-modal-backdrop')); });
     $('change-password-modal-close').addEventListener('click', function () { window.VaultUI.closeModal($('change-password-modal-backdrop')); });
+
+    // Passkey
+    $('passkey-unlock-btn').addEventListener('click', handlePasskeyUnlockClick);
+    $('passkey-toggle-btn').addEventListener('click', handlePasskeyToggleClick);
+    $('verify-password-form').addEventListener('submit', handleVerifyPasswordSubmit);
+    $('verify-password-cancel-btn').addEventListener('click', function () {
+      verifyPasswordCallback = null;
+      window.VaultUI.closeModal($('verify-password-modal-backdrop'));
+    });
+    $('verify-password-modal-close').addEventListener('click', function () {
+      verifyPasswordCallback = null;
+      window.VaultUI.closeModal($('verify-password-modal-backdrop'));
+    });
+
+    // PWA install
+    $('install-app-btn').addEventListener('click', handleInstallClick);
 
     $('export-btn').addEventListener('click', handleExport);
     $('import-btn').addEventListener('click', function () { $('import-file-input').click(); });

@@ -271,10 +271,12 @@ select {
    ========================================================= */
 .lock-screen {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+           max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
   background:
     radial-gradient(circle at 20% 10%, rgba(124, 106, 239, 0.14), transparent 45%),
     radial-gradient(circle at 85% 85%, rgba(53, 208, 232, 0.10), transparent 45%),
@@ -308,6 +310,34 @@ select {
   color: var(--text-tertiary);
   line-height: 1.5;
 }
+
+/* Passkey unlock (prominent, mobile-first per spec) */
+.btn-passkey {
+  background: var(--accent-gradient);
+  color: #fff;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 14px rgba(124, 106, 239, 0.28);
+}
+.btn-passkey:hover { filter: brightness(1.06); }
+.btn-passkey svg { width: 18px; height: 18px; }
+
+.lock-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 16px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+.lock-divider::before,
+.lock-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.passkey-context-note { margin-top: -6px; margin-bottom: 14px; }
 
 /* =========================================================
    App shell
@@ -372,12 +402,14 @@ select {
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
 .topbar {
-  height: var(--topbar-height);
+  height: calc(var(--topbar-height) + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 24px;
+  padding-left: max(24px, env(safe-area-inset-left));
+  padding-right: max(24px, env(safe-area-inset-right));
   position: sticky;
   top: 0;
   background: rgba(10, 13, 19, 0.85);
@@ -642,13 +674,13 @@ select {
 .bottom-nav {
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: var(--bottom-nav-height);
+  height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
   background: var(--bg-surface);
   border-top: 1px solid var(--border-subtle);
   display: none;
   align-items: center;
   justify-content: space-around;
-  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  padding: 6px max(8px, env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
   z-index: 60;
 }
 .bottom-nav-item {
@@ -684,7 +716,7 @@ select {
   .sidebar { display: none; }
   .only-desktop { display: none; }
   .only-mobile { display: flex; }
-  .app { padding-bottom: var(--bottom-nav-height); }
+  .app { padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)); }
   .bottom-nav { display: flex; }
   .topbar { padding: 0 16px; gap: 8px; }
   .content { padding: 18px 16px 32px; }
@@ -720,7 +752,8 @@ select {
   }
 
   .toast-region {
-    left: 12px; right: 12px; bottom: calc(var(--bottom-nav-height) + 16px);
+    left: 12px; right: 12px;
+    bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 16px);
     max-width: none; align-items: center;
   }
 }
